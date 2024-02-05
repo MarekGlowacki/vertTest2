@@ -11,32 +11,36 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start() {
-        // Obsługa zdarzenia - odczyt pliku
-        vertx.fileSystem().readFile("nazwa_pliku.txt", result -> {
-            if (result.succeeded()) {
-                Buffer fileData = result.result();
-                // Wykonaj asynchroniczną operację - np. zapis do bazy danych
-                vertx.executeBlocking(future -> {
-                    // Symulacja długotrwałej operacji
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    future.complete("Wynik długotrwałej operacji");
-                }, res -> {
-                    if (res.succeeded()) {
-                        String operationResult = (String) res.result();
-                        // Obsługa wyniku asynchronicznej operacji
-                        System.out.println("Wynik operacji: " + operationResult);
+        String nazwaPliku = "nazwa_pliku.txt";
+        vertx.fileSystem().exists(nazwaPliku, result -> {
+            if (result.succeeded() && !result.result()) {
+                // Plik nie istnieje, więc go utwórz
+                vertx.fileSystem().writeFile(nazwaPliku, Buffer.buffer("Domyślna zawartość pliku"), writeResult -> {
+                    if (writeResult.succeeded()) {
+                        System.out.println("Utworzono plik: " + nazwaPliku);
+                        // Kontynuuj operację odczytu pliku
+                        readFileContent(nazwaPliku);
                     } else {
-                        // Obsługa błędu asynchronicznej operacji
-                        System.err.println("Błąd operacji: " + res.cause().getMessage());
+                        System.err.println("Błąd podczas tworzenia pliku: " + writeResult.cause().getMessage());
                     }
                 });
+            } else if (result.succeeded() && result.result()) {
+                // Plik istnieje, więc odczytaj zawartość
+                readFileContent(nazwaPliku);
             } else {
-                // Obsługa błędu odczytu pliku
-                System.err.println("Błąd odczytu pliku: " + result.cause().getMessage());
+                System.err.println("Błąd sprawdzania istnienia pliku: " + result.cause().getMessage());
+            }
+        });
+    }
+
+    private void readFileContent(String nazwaPliku) {
+        vertx.fileSystem().readFile(nazwaPliku, readResult -> {
+            if (readResult.succeeded()) {
+                Buffer fileData = readResult.result();
+                // Tutaj możesz kontynuować przetwarzanie danych z pliku
+                System.out.println("Zawartość pliku: " + fileData.toString());
+            } else {
+                System.err.println("Błąd odczytu pliku: " + readResult.cause().getMessage());
             }
         });
     }
