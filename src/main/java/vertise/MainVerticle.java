@@ -1,7 +1,8 @@
 package vertise;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
+import io.vertx.ext.web.Router;
 
 public class MainVerticle extends AbstractVerticle {
     public static void main(String[] args) {
@@ -11,37 +12,19 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start() {
-        String nazwaPliku = "nazwa_pliku.txt";
-        vertx.fileSystem().exists(nazwaPliku, result -> {
-            if (result.succeeded() && !result.result()) {
-                // Plik nie istnieje, więc go utwórz
-                vertx.fileSystem().writeFile(nazwaPliku, Buffer.buffer("Domyślna zawartość pliku"), writeResult -> {
-                    if (writeResult.succeeded()) {
-                        System.out.println("Utworzono plik: " + nazwaPliku);
-                        // Kontynuuj operację odczytu pliku
-                        readFileContent(nazwaPliku);
-                    } else {
-                        System.err.println("Błąd podczas tworzenia pliku: " + writeResult.cause().getMessage());
-                    }
-                });
-            } else if (result.succeeded() && result.result()) {
-                // Plik istnieje, więc odczytaj zawartość
-                readFileContent(nazwaPliku);
-            } else {
-                System.err.println("Błąd sprawdzania istnienia pliku: " + result.cause().getMessage());
-            }
-        });
-    }
+        // Utwórz obiekt routera
+        Router router = Router.router(vertx);
 
-    private void readFileContent(String nazwaPliku) {
-        vertx.fileSystem().readFile(nazwaPliku, readResult -> {
-            if (readResult.succeeded()) {
-                Buffer fileData = readResult.result();
-                // Tutaj możesz kontynuować przetwarzanie danych z pliku
-                System.out.println("Zawartość pliku: " + fileData.toString());
-            } else {
-                System.err.println("Błąd odczytu pliku: " + readResult.cause().getMessage());
-            }
+        // Dodaj obsługę żądania GET na ścieżce /hello
+        router.get("/hello").handler(routingContext -> {
+            // Obsługa żądania - w tym przypadku zwracamy "Hello, World!"
+            routingContext.response()
+                    .putHeader("content-type", "text/plain")
+                    .end("Hello, World!");
         });
+
+        // Utwórz serwer HTTP i przypisz do niego router
+        HttpServer server = vertx.createHttpServer();
+        server.requestHandler(router).listen(8080); // Serwer nasłuchuje na porcie 8080
     }
 }
